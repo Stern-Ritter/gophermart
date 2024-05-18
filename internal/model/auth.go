@@ -7,7 +7,7 @@ import (
 )
 
 type SignInRequest struct {
-	Login    string `json:"login" validate:"required,min=5,max=30" msg:"Login length should be between 5 and 30 characters."`
+	Login    string `json:"login" validate:"required,min=4,max=30" msg:"Login length should be between 4 and 30 characters."`
 	Password string `json:"password" validate:"required,min=8,max=256" msg:"Password length should be between 8 and 256 characters."`
 }
 
@@ -16,7 +16,7 @@ func (s *SignInRequest) Validate(validate *validator.Validate) error {
 }
 
 type SignUpRequest struct {
-	Login    string `json:"login" validate:"required,min=5,max=30" msg:"Login length should be between 5 and 30 characters."`
+	Login    string `json:"login" validate:"required,min=4,max=30" msg:"Login length should be between 4 and 30 characters."`
 	Password string `json:"password" validate:"required,min=8,max=256" msg:"Password length should be between 8 and 256 characters."`
 }
 

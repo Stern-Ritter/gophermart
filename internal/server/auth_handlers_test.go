@@ -51,8 +51,8 @@ func TestSignUpHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:               "should return status 400 when login field length is less than 5 characters",
-			body:               `{"login":"user","password":"password"}`,
+			name:               "should return status 400 when login field length is less than 4 characters",
+			body:               `{"login":"usr","password":"password"}`,
 			useUserStorage:     false,
 			expectedStatusCode: http.StatusBadRequest,
 		},
@@ -187,8 +187,8 @@ func TestSignInHandler(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:               "should return status 400 when login field length is less than 5 characters",
-			body:               `{"login":"user","password":"password"}`,
+			name:               "should return status 400 when login field length is less than 4 characters",
+			body:               `{"login":"usr","password":"password"}`,
 			useUserStorage:     false,
 			expectedStatusCode: http.StatusBadRequest,
 		},
