@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	er "github.com/Stern-Ritter/gophermart/internal/errors"
 	"github.com/Stern-Ritter/gophermart/internal/logger"
@@ -18,11 +17,11 @@ type WithdrawnStorage interface {
 }
 
 type WithdrawnStorageImpl struct {
-	db     *pgxpool.Pool
+	db     PgxIface
 	logger *logger.ServerLogger
 }
 
-func NewWithdrawnStorage(db *pgxpool.Pool, logger *logger.ServerLogger) WithdrawnStorage {
+func NewWithdrawnStorage(db PgxIface, logger *logger.ServerLogger) WithdrawnStorage {
 	return &WithdrawnStorageImpl{
 		db:     db,
 		logger: logger,

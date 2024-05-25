@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Stern-Ritter/gophermart/internal/logger"
 	"github.com/Stern-Ritter/gophermart/internal/model"
@@ -20,11 +19,11 @@ type AccrualStorage interface {
 }
 
 type AccrualStorageImpl struct {
-	db     *pgxpool.Pool
+	db     PgxIface
 	logger *logger.ServerLogger
 }
 
-func NewAccrualStorage(db *pgxpool.Pool, logger *logger.ServerLogger) AccrualStorage {
+func NewAccrualStorage(db PgxIface, logger *logger.ServerLogger) AccrualStorage {
 	return &AccrualStorageImpl{
 		db:     db,
 		logger: logger,

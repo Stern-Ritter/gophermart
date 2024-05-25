@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Stern-Ritter/gophermart/internal/logger"
 	"github.com/Stern-Ritter/gophermart/internal/model"
@@ -16,11 +15,11 @@ type UserStorage interface {
 }
 
 type UserStorageImpl struct {
-	db     *pgxpool.Pool
+	db     PgxIface
 	logger *logger.ServerLogger
 }
 
-func NewUserStorage(db *pgxpool.Pool, logger *logger.ServerLogger) UserStorage {
+func NewUserStorage(db PgxIface, logger *logger.ServerLogger) UserStorage {
 	return &UserStorageImpl{
 		db:     db,
 		logger: logger,

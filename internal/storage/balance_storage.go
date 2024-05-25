@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Stern-Ritter/gophermart/internal/logger"
 	"github.com/Stern-Ritter/gophermart/internal/model"
@@ -15,11 +14,11 @@ type BalanceStorage interface {
 }
 
 type BalanceStorageImpl struct {
-	db     *pgxpool.Pool
+	db     PgxIface
 	logger *logger.ServerLogger
 }
 
-func NewBalanceStorage(db *pgxpool.Pool, logger *logger.ServerLogger) BalanceStorage {
+func NewBalanceStorage(db PgxIface, logger *logger.ServerLogger) BalanceStorage {
 	return &BalanceStorageImpl{
 		db:     db,
 		logger: logger,
