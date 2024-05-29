@@ -15,7 +15,7 @@ type AccrualStorage interface {
 	Update(ctx context.Context, accrual model.Accrual) error
 	UpdateInBatch(ctx context.Context, accruals []model.Accrual) error
 	GetAllByUserIDOrderByUploadedAtAsc(ctx context.Context, userID int64) ([]model.Accrual, error)
-	GetAllNewInProcessingWithLimit(ctx context.Context, limit int64) ([]model.Accrual, error)
+	GetAllUnprocessedWithLimit(ctx context.Context, limit int64) ([]model.Accrual, error)
 }
 
 type AccrualStorageImpl struct {
@@ -72,7 +72,7 @@ func (s *AccrualStorageImpl) UpdateInBatch(ctx context.Context, accruals []model
 	for _, accrual := range accruals {
 		_, err := tx.Exec(ctx, `
 		UPDATE loyalty_points_accrual
-		SET processed_at = @processedAt, status = @status, amount = @amount
+		SET processed_at = @processedAt, status = @status, amount = @amount, processing_lock = FALSE
 		WHERE user_id = @userId AND order_number = @orderNumber
 		`, pgx.NamedArgs{
 			"userId":      accrual.UserID,
@@ -134,7 +134,7 @@ func (s *AccrualStorageImpl) GetAllByUserIDOrderByUploadedAtAsc(ctx context.Cont
 	return accruals, nil
 }
 
-func (s *AccrualStorageImpl) GetAllNewInProcessingWithLimit(ctx context.Context, limit int64) ([]model.Accrual, error) {
+func (s *AccrualStorageImpl) GetAllUnprocessedWithLimit(ctx context.Context, limit int64) ([]model.Accrual, error) {
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, err
@@ -143,14 +143,15 @@ func (s *AccrualStorageImpl) GetAllNewInProcessingWithLimit(ctx context.Context,
 
 	rows, err := tx.Query(ctx, `
 		SELECT
-		    user_id,
+			user_id,
 			order_number,
 			uploaded_at,
 			processed_at,
 			status,
 			amount
 		FROM loyalty_points_accrual
-		WHERE status = 'NEW'
+		WHERE status IN ('NEW', 'PROCESSING')
+		AND processing_lock = FALSE
 		ORDER BY uploaded_at
 		LIMIT @limit
 	`, pgx.NamedArgs{
@@ -182,7 +183,7 @@ func (s *AccrualStorageImpl) GetAllNewInProcessingWithLimit(ctx context.Context,
 		return nil, err
 	}
 
-	err = updateStatusInBatch(ctx, tx, model.AccrualProcessing, accruals)
+	err = updateStatusInBatch(ctx, tx, model.AccrualProcessing, true, accruals)
 	if err != nil {
 		return nil, err
 	}
@@ -192,19 +193,25 @@ func (s *AccrualStorageImpl) GetAllNewInProcessingWithLimit(ctx context.Context,
 		return nil, err
 	}
 
+	for i := range accruals {
+		accruals[i].Status = model.AccrualProcessing
+	}
+
 	return accruals, nil
 }
 
-func updateStatusInBatch(ctx context.Context, tx pgx.Tx, status model.AccrualStatus, accruals []model.Accrual) error {
+func updateStatusInBatch(ctx context.Context, tx pgx.Tx, status model.AccrualStatus, processingLock bool,
+	accruals []model.Accrual) error {
 	for _, accrual := range accruals {
 		_, err := tx.Exec(ctx, `
 		UPDATE loyalty_points_accrual
-		SET status = @status
+		SET status = @status, processing_lock = @processingLock
 		WHERE user_id = @userId AND order_number = @orderNumber
 		`, pgx.NamedArgs{
-			"userId":      accrual.UserID,
-			"orderNumber": accrual.OrderNumber,
-			"status":      status,
+			"userId":         accrual.UserID,
+			"orderNumber":    accrual.OrderNumber,
+			"status":         status,
+			"processingLock": processingLock,
 		})
 		if err != nil {
 			return err

@@ -22,7 +22,8 @@ services:
     networks:
       - gophermart-network
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   accrual:
     container_name: accrual-service
@@ -50,6 +51,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     command: [ "postgres", "-c", "log_statement=all" ]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   gophermart-network:

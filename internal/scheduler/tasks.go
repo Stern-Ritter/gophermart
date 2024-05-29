@@ -110,11 +110,9 @@ func (s *AccrualsScheduler) processingAccrualsWorker(id int, processingAccrualsC
 						processedAccrual := model.UpdateAccrualFormAccrualProcessDto(accrual, accrualProcessDto)
 						processedAccruals = append(processedAccruals, processedAccrual)
 					case model.AccrualProcessRegistered, model.AccrualProcessProcessing:
-						accrual.Status = model.AccrualNew
 						processedAccruals = append(processedAccruals, accrual)
 					}
 				case http.StatusNoContent:
-					accrual.Status = model.AccrualNew
 					processedAccruals = append(processedAccruals, accrual)
 				case http.StatusTooManyRequests, http.StatusInternalServerError:
 					return er.NewRequestProcessingError(
@@ -128,7 +126,6 @@ func (s *AccrualsScheduler) processingAccrualsWorker(id int, processingAccrualsC
 			if sendErr := backoff.Retry(processingAccrual, s.processAccrualsRetryInterval); sendErr != nil {
 				s.logger.Error("Error processing accrual", zap.Int("worker id", id),
 					zap.Error(sendErr), zap.String("event", "processing accrual"))
-				accrual.Status = model.AccrualNew
 				processedAccruals = append(processedAccruals, accrual)
 				continue
 			}

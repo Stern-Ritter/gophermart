@@ -61,5 +61,5 @@ func (s *AccrualServiceImpl) GetAllAccrualsByUserID(ctx context.Context, userID 
 }
 
 func (s *AccrualServiceImpl) GetAllNewAccrualsInProcessingWithLimit(ctx context.Context, limit int64) ([]model.Accrual, error) {
-	return s.accrualStorage.GetAllNewInProcessingWithLimit(ctx, limit)
+	return s.accrualStorage.GetAllUnprocessedWithLimit(ctx, limit)
 }

@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS loyalty_points_accrual (
     processed_at TIMESTAMP WITH TIME ZONE,
     status ACCRUAL_STATUS NOT NULL,
     amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+    processing_lock BOOL DEFAULT FALSE,
     CONSTRAINT pk_loyalty_points_accrual PRIMARY KEY(user_id, order_number),
     CONSTRAINT loyalty_points_accrual_to_users_fk
     FOREIGN KEY(user_id) REFERENCES users(id),

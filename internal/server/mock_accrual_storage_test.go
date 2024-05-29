@@ -55,19 +55,19 @@ func (mr *MockAccrualStorageMockRecorder) GetAllByUserIDOrderByUploadedAtAsc(ctx
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllByUserIDOrderByUploadedAtAsc", reflect.TypeOf((*MockAccrualStorage)(nil).GetAllByUserIDOrderByUploadedAtAsc), ctx, userID)
 }
 
-// GetAllNewInProcessingWithLimit mocks base method.
-func (m *MockAccrualStorage) GetAllNewInProcessingWithLimit(ctx context.Context, limit int64) ([]model.Accrual, error) {
+// GetAllUnprocessedWithLimit mocks base method.
+func (m *MockAccrualStorage) GetAllUnprocessedWithLimit(ctx context.Context, limit int64) ([]model.Accrual, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllNewInProcessingWithLimit", ctx, limit)
+	ret := m.ctrl.Call(m, "GetAllUnprocessedWithLimit", ctx, limit)
 	ret0, _ := ret[0].([]model.Accrual)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAllNewInProcessingWithLimit indicates an expected call of GetAllNewInProcessingWithLimit.
-func (mr *MockAccrualStorageMockRecorder) GetAllNewInProcessingWithLimit(ctx, limit any) *gomock.Call {
+// GetAllUnprocessedWithLimit indicates an expected call of GetAllUnprocessedWithLimit.
+func (mr *MockAccrualStorageMockRecorder) GetAllUnprocessedWithLimit(ctx, limit any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllNewInProcessingWithLimit", reflect.TypeOf((*MockAccrualStorage)(nil).GetAllNewInProcessingWithLimit), ctx, limit)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllUnprocessedWithLimit", reflect.TypeOf((*MockAccrualStorage)(nil).GetAllUnprocessedWithLimit), ctx, limit)
 }
 
 // Save mocks base method.

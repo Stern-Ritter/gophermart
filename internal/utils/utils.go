@@ -50,7 +50,11 @@ func ValidateOrderNumber(number string) error {
 }
 
 func ParseOrderNumber(orderNumber string) (int64, error) {
-	return strconv.ParseInt(orderNumber, 10, 64)
+	num, err := strconv.ParseInt(orderNumber, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid order number: %s", orderNumber)
+	}
+	return num, nil
 }
 
 func FormatOrderNumber(orderNumber int64) string {

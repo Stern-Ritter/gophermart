@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"regexp"
 	"testing"
 	"time"
 
@@ -128,7 +129,7 @@ func TestAccrualStorageUpdateInBatch(t *testing.T) {
 	for _, accrual := range accruals {
 		mock.ExpectExec(`
 			UPDATE loyalty_points_accrual
-			SET processed_at = @processedAt, status = @status, amount = @amount
+			SET processed_at = @processedAt, status = @status, amount = @amount, processing_lock = FALSE
 			WHERE user_id = @userId AND order_number = @orderNumber
 		`).
 			WithArgs(
@@ -222,7 +223,7 @@ func TestAccrualStorageGetAllByUserIDOrderByUploadedAtAsc(t *testing.T) {
 	assert.NoError(t, err, "The expected sql commands were not executed")
 }
 
-func TestAccrualStorageGetAllNewInProcessingWithLimit(t *testing.T) {
+func TestAccrualStorageGetAllUnprocessedWithLimit(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	require.NoError(t, err, "Error init connection mock")
 	defer mock.Close()
@@ -279,35 +280,36 @@ func TestAccrualStorageGetAllNewInProcessingWithLimit(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectQuery(`
+	mock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT
-		    user_id,
+			user_id,
 			order_number,
 			uploaded_at,
 			processed_at,
 			status,
 			amount
 		FROM loyalty_points_accrual
-		WHERE status = 'NEW'
+		WHERE status IN ('NEW', 'PROCESSING')
+		AND processing_lock = FALSE
 		ORDER BY uploaded_at
 		LIMIT @limit
-	`).WithArgs(limit).WillReturnRows(rows)
+	`)).WithArgs(limit).WillReturnRows(rows)
 
 	for _, accrual := range accruals {
 		mock.ExpectExec(`
 		UPDATE loyalty_points_accrual
-		SET status = @status
+		SET status = @status, processing_lock = @processingLock
 		WHERE user_id = @userId AND order_number = @orderNumber
-	`).
-			WithArgs(model.AccrualProcessing, accrual.UserID, accrual.OrderNumber).
+		`).
+			WithArgs(model.AccrualProcessing, true, accrual.UserID, accrual.OrderNumber).
 			WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	}
 
 	mock.ExpectCommit()
 
-	savedAccruals, err := accrualStorage.GetAllNewInProcessingWithLimit(context.Background(), limit)
+	savedAccruals, err := accrualStorage.GetAllUnprocessedWithLimit(context.Background(), limit)
 
-	assert.NoError(t, err, "Error getting all new processing accruals with limit")
+	assert.NoError(t, err, "Error getting all unprocessed accruals with limit")
 	assert.Equal(t, accruals, savedAccruals, "Returned accruals does not match expected")
 
 	err = mock.ExpectationsWereMet()

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -12,7 +13,8 @@ import (
 )
 
 func (s *Server) SignUpHandler(res http.ResponseWriter, req *http.Request) {
-	signUpRequest, err := decodeSignUpRequest(req.Body)
+	signUpRequest := model.SignUpRequest{}
+	err := decodeWithUnknownAndDuplicateFieldsCheck(req.Body, &signUpRequest)
 	if err != nil {
 		http.Error(res, "Error decode request JSON body", http.StatusBadRequest)
 		return
@@ -39,7 +41,8 @@ func (s *Server) SignUpHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) SignInHandler(res http.ResponseWriter, req *http.Request) {
-	signInRequest, err := decodeSignInRequest(req.Body)
+	signInRequest := model.SignInRequest{}
+	err := decodeWithUnknownAndDuplicateFieldsCheck(req.Body, &signInRequest)
 	if err != nil {
 		http.Error(res, "Error decode request JSON body", http.StatusBadRequest)
 		return
@@ -65,26 +68,67 @@ func (s *Server) SignInHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusOK)
 }
 
-func decodeSignUpRequest(source io.ReadCloser) (model.SignUpRequest, error) {
-	request := model.SignUpRequest{}
+func decodeWithUnknownAndDuplicateFieldsCheck(source io.ReadCloser, target any) error {
 	var buf bytes.Buffer
-	_, err := buf.ReadFrom(source)
+	reader := io.TeeReader(source, &buf)
+
+	dec := json.NewDecoder(reader)
+	err := checkDuplicateKeys(dec)
 	if err != nil {
-		return request, err
+		return err
 	}
 
-	err = json.Unmarshal(buf.Bytes(), &request)
-	return request, err
+	dec = json.NewDecoder(&buf)
+	dec.DisallowUnknownFields()
+	return dec.Decode(target)
 }
 
-func decodeSignInRequest(source io.ReadCloser) (model.SignInRequest, error) {
-	request := model.SignInRequest{}
-	var buf bytes.Buffer
-	_, err := buf.ReadFrom(source)
+func checkDuplicateKeys(dec *json.Decoder) error {
+	t, err := dec.Token()
 	if err != nil {
-		return request, err
+		return err
 	}
 
-	err = json.Unmarshal(buf.Bytes(), &request)
-	return request, err
+	delim, ok := t.(json.Delim)
+	if !ok {
+		return nil
+	}
+
+	switch delim {
+	case '{':
+		keys := make(map[string]bool)
+		for dec.More() {
+			t, err := dec.Token()
+			if err != nil {
+				return err
+			}
+			key := t.(string)
+
+			if keys[key] {
+				return fmt.Errorf("duplicate key found: %s", key)
+			}
+			keys[key] = true
+
+			if err := checkDuplicateKeys(dec); err != nil {
+				return err
+			}
+		}
+
+		if _, err := dec.Token(); err != nil {
+			return err
+		}
+
+	case '[':
+		for dec.More() {
+			if err := checkDuplicateKeys(dec); err != nil {
+				return err
+			}
+		}
+
+		if _, err := dec.Token(); err != nil {
+			return err
+		}
+
+	}
+	return nil
 }

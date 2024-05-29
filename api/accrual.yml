@@ -1,0 +1,130 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Accrual service
+  description: Accrual service
+
+servers:
+  - url: http://localhost:8089/api
+
+paths:
+  /orders:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+      responses:
+        '202':
+          description: 'заказ успешно принят в обработку'
+        '400':
+          description: 'неверный формат запроса'
+        '409':
+          description: 'заказ уже принят в обработку'
+        '500':
+          description: 'внутренняя ошибка сервера'
+
+  /orders/{nubmer}:
+    get:
+      responses:
+        '200':
+          description: 'успешная обработка запроса'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accrual'
+        '204':
+          description: 'заказ не зарегистрирован в системе расчёта'
+        '429':
+          description: 'превышено количество запросов к сервису'
+        '500':
+          description: 'внутренняя ошибка сервера'
+
+  /goods:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardType'
+      responses:
+        '200':
+          description: 'вознаграждение успешно зарегистрировано'
+        '400':
+          description: 'неверный формат запроса'
+        '409':
+          description: 'ключ поиска уже зарегистрирован'
+        '500':
+          description: 'внутренняя ошибка сервера'
+
+components:
+  schemas:
+    Accrual:
+      type: object
+      properties:
+        order:
+          type: string
+          title: "номер заказа"
+          example: "12345678903"
+        status:
+          type: string
+          title: "статус расчёта начисления"
+          example: "PROCESSED"
+        accrual:
+          type: number
+          title: "рассчитанные баллы к начислению, при отсутствии начисления"
+          example: 500
+      required:
+        - order
+        - status
+
+    Good:
+      type: object
+      properties:
+        description:
+          type: string
+          title: "наименование товара"
+          example: "Чайник Bork"
+        price:
+          type: number
+          title: "цена оплаченного товара"
+          example: 7000
+      required:
+        - description
+        - price
+
+    Order:
+      type: object
+      properties:
+        order:
+          type: string
+          title: "номер заказа"
+          example: "12345678903"
+        goods:
+          type: array
+          title: "список купленых товаров"
+          items:
+            $ref: '#/components/schemas/Good'
+
+    RewardType:
+      type: object
+      properties:
+        match:
+          type: string
+          title: "ключ поиска (проверяется на наличие в строке наименования товара)"
+          example: "Bork"
+        reward:
+          type: number
+          title: "размер вознаграждения"
+          example: 10
+        reward_type:
+          type: string
+          title: "тип вознаграждения"
+          example: "%"
+      required:
+        - match
+        - reward
+        - reward_type
