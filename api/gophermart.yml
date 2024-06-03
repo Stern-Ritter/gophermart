@@ -1,0 +1,289 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Gophermart service
+  description: Gophermart service
+
+servers:
+  - url: http://localhost:8080/api
+
+paths:
+  /user/register:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '200':
+          description: 'пользователь успешно зарегистрирован и аутентифицирован'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignUpResponse'
+        '400':
+          description: 'неверный формат запроса'
+        '409':
+          description: 'логин уже занят'
+        '500':
+          description: 'внутренняя ошибка сервера'
+
+  /user/login:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+      responses:
+        '200':
+          description: 'пользователь успешно аутентифицирован'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInResponse'
+        '400':
+          description: 'неверный формат запроса'
+        '401':
+          description: 'неверная пара логин/пароль'
+        '500':
+          description: 'внутренняя ошибка сервера'
+
+  /user/orders:
+    get:
+      responses:
+        '200':
+          description: 'успешная обработка запроса'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LoyaltyPointsAccrualResponse'
+        '204':
+          description: 'нет данных для ответа'
+        '401':
+          description: 'пользователь не авторизован'
+        '500':
+          description: 'внутренняя ошибка сервера'
+      security:
+        - JWTTokenHeader: [ ]
+    post:
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              $ref: '#/components/schemas/LoyaltyPointsAccrualRequest'
+      responses:
+        '200':
+          description: 'номер заказа уже был загружен этим пользователем'
+        '202':
+          description: 'новый номер заказа принят в обработку'
+        '400':
+          description: 'неверный формат запроса'
+        '401':
+          description: 'пользователь не аутентифицирован'
+        '409':
+          description: 'номер заказа уже был загружен другим пользователем'
+        '422':
+          description: 'неверный формат номера заказа'
+        '500':
+          description: 'внутренняя ошибка сервера'
+      security:
+        - JWTTokenHeader: [ ]
+
+  /user/balance:
+    get:
+      responses:
+        '200':
+          description: 'успешная обработка запроса'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoyaltyPointsBalanceResponse'
+        '401':
+          description: 'пользователь не авторизован'
+        '500':
+          description: 'внутренняя ошибка сервера'
+      security:
+        - JWTTokenHeader: [ ]
+
+  /user/balance/withdraw:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoyaltyPointsWithdrawRequest'
+      responses:
+        '200':
+          description: 'успешная обработка запроса'
+        '401':
+          description: 'пользователь не авторизован'
+        '402':
+          description: 'на счету недостаточно средств'
+        '422':
+          description: 'неверный номер заказа'
+        '500':
+          description: 'внутренняя ошибка сервера'
+      security:
+        - JWTTokenHeader: [ ]
+
+  /user/withdrawals:
+    get:
+      responses:
+        '200':
+          description: 'успешная обработка запроса'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LoyaltyPointsWithdrawHistoryResponse'
+        '204':
+          description: 'нет ни одного списания'
+        '401':
+          description: 'пользователь не авторизован'
+        '500':
+          description: 'внутренняя ошибка сервера'
+      security:
+        - JWTTokenHeader: [ ]
+
+components:
+  securitySchemes:
+    JWTTokenHeader:
+      type: apiKey
+      in: header
+      name: Authorization
+
+  schemas:
+    SignUpRequest:
+      type: object
+      properties:
+        login:
+          type: string
+          title: "логин пользователя"
+          example: "user_76"
+        password:
+          type: string
+          title: "пароль пользователя"
+          example: "someStrongPassword"
+      required:
+        - login
+        - password
+
+    SignUpResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT-токен
+      required:
+        - access_token
+
+    SignInRequest:
+      type: object
+      properties:
+        login:
+          type: string
+          title: "логин пользователя"
+          example: "user_76"
+        password:
+          type: string
+          title: "пароль пользователя"
+          example: "someStrongPassword"
+      required:
+        - login
+        - password
+
+    SignInResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT-токен
+      required:
+        - access_token
+
+    LoyaltyPointsAccrualRequest:
+      type: string
+      title: "номер заказа пользователя"
+      example: "12345678903"
+
+    LoyaltyPointsAccrualResponse:
+      type: object
+      properties:
+        number:
+          type: string
+          title: "номер заказа пользователя"
+          example: "9278923470"
+        status:
+          type: string
+          title: "статус обработки расчетов"
+          example: "PROCESSED"
+        accrual:
+          type: number
+          default: 500
+        uploaded_at:
+          type: string
+          title: "дата и время загрузки заказа пользователем"
+          example: "2024-05-10T15:15:45+03:00"
+      required:
+        - number
+        - status
+        - uploaded_at
+
+    LoyaltyPointsWithdrawRequest:
+      type: object
+      properties:
+        order:
+          type: string
+          title: "номер заказа пользователя"
+          example: "2377225624"
+        sum:
+          type: number
+          title: "сумма баллов лояльности к списанию в счёт оплаты заказа"
+          example: 500
+      required:
+        - order
+        - sum
+
+    LoyaltyPointsWithdrawHistoryResponse:
+      type: object
+      properties:
+        order:
+          type: string
+          title: "номер заказа пользователя"
+          example: "2377225624"
+        sum:
+          type: number
+          title: "сумма баллов лояльности списанных в счёт оплаты заказа"
+          default: 500
+        processed_at:
+          type: string
+          title: "дата и время списания операции"
+          example: "2024-05-10T16:09:57+03:00"
+      required:
+        - order
+        - sum
+        - processed_at
+
+    LoyaltyPointsBalanceResponse:
+      type: object
+      properties:
+        current:
+          type: number
+          title: "текущая сумма баллов лояльности"
+          example: 500.5
+        withdrawn:
+          type: number
+          title: "сумма использованных за весь период регистрации баллов лояльности"
+          example: 42
+      required:
+        - current
+        - withdrawn

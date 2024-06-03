@@ -1,0 +1,84 @@
+version: "3.9"
+
+services:
+  gophermart:
+    container_name: gophermart-service
+    build:
+      context: .
+      dockerfile: Dockerfile-gophermart
+    ports:
+      - "8080:8080"
+    environment:
+      RUN_ADDRESS: :8080
+      ACCRUAL_SYSTEM_ADDRESS: accrual:8089
+      DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      GET_NEW_ACCRUALS_INTERVAL: ${GET_NEW_ACCRUALS_INTERVAL}
+      PROCESS_ACCRUALS_BATCH_MAX_SIZE: ${PROCESS_ACCRUALS_BATCH_MAX_SIZE}
+      PROCESS_ACCRUALS_BUFFER_SIZE: ${PROCESS_ACCRUALS_BUFFER_SIZE}
+      PROCESS_ACCRUALS_WORKER_POOL_SIZE: ${PROCESS_ACCRUALS_BUFFER_SIZE}
+    env_file:
+      - .env
+    networks:
+      - gophermart-network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://gophermart-service:8080/healthcheck || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  accrual:
+    container_name: accrual-service
+    build:
+      context: .
+      dockerfile: Dockerfile-accrual
+    ports:
+      - "8089:8089"
+    environment:
+      RUN_ADDRESS: :8089
+    networks:
+      - gophermart-network
+
+  db:
+    image: postgres:16.3
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    networks:
+      - gophermart-network
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    command: [ "postgres", "-c", "log_statement=all" ]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    networks:
+      - gophermart-network
+
+networks:
+  gophermart-network:
+
+volumes:
+  pgdata:
