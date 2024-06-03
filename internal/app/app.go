@@ -56,8 +56,8 @@ func Run(config *config.ServerConfig, logger *logger.ServerLogger) error {
 	balanceService := service.NewBalanceService(balanceStorage, logger)
 
 	accrualsScheduler := scheduler.NewAccrualsScheduler(accrualService, config.AccrualSystemURL,
-		config.ProcessAccrualsBatchMaxSize, config.ProcessAccrualsBufferSize, config.ProcessAccrualsWorkerPoolSize,
-		config.GetNewAccrualsInterval, logger)
+		config.ProcessAccrualsConfig.ProcessAccrualsBatchMaxSize, config.ProcessAccrualsConfig.ProcessAccrualsBufferSize,
+		config.ProcessAccrualsConfig.ProcessAccrualsWorkerPoolSize, config.ProcessAccrualsConfig.GetNewAccrualsInterval, logger)
 	accrualsScheduler.RunTasks()
 	defer accrualsScheduler.StopTasks()
 
@@ -88,6 +88,8 @@ func addRoutes(s *server.Server) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(s.Logger.LoggerMiddleware)
 	r.Use(compress.GzipMiddleware)
+
+	r.Get("/healthcheck", s.HealthcheckHandler)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/user", func(r chi.Router) {
